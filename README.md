@@ -1,5 +1,7 @@
 # ESM Forum - Frontend 
 
+Para configurar os forks desta entrega e executar backend e frontend, consulte [INSTALACAO.md](INSTALACAO.md).
+
 Este repositório contem o frontend do sistema ESM Forum, implementado agora em React.
 
 ## Instalação e Execução
@@ -35,4 +37,3 @@ A implementação do frontend é constituída por cinco arquivos principais:
 * Pages/Sobre.js: implementa um componente que mostra a página com informações sobre o sistema
 
 ![Componentes da página principal](docs/componentes.png)
-
