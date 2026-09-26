@@ -1,4 +1,5 @@
 import React from 'react';
+import { buscarPerguntas } from '../servicos/perguntas';
 import { Link } from "react-router-dom";
 import { Container, Table, Form, Button } from 'react-bootstrap';
 
@@ -38,18 +39,32 @@ function NovaPergunta(props) {
   );
 }
 
-function Pergunta() {
+function Pergunta({ buscar = buscarPerguntas }) {
   const [listaPerguntas, setListaPerguntas] = React.useState([]);
 
-  function adicionarNovaPergunta(id_pergunta, pergunta) {
-    setListaPerguntas((prev) => {
-      const novaPergunta = {
-        id_pergunta: id_pergunta,
-        texto: pergunta,
-        num_respostas: 0,
-      };
-      return [...prev, novaPergunta];
-    });
+  const [consulta, setConsulta] = React.useState('');
+  const [carregando, setCarregando] = React.useState(true);
+  const [erro, setErro] = React.useState(false);
+  const ultimaBusca = React.useRef(0);
+  const consultaAplicada = React.useRef('');
+
+  const pesquisar = React.useCallback(async (texto) => {
+    const numero = ++ultimaBusca.current;
+    consultaAplicada.current = texto;
+    setCarregando(true);
+    setErro(false);
+    try {
+      const perguntas = await buscar(texto);
+      if (numero === ultimaBusca.current) setListaPerguntas(perguntas);
+    } catch {
+      if (numero === ultimaBusca.current) setErro(true);
+    } finally {
+      if (numero === ultimaBusca.current) setCarregando(false);
+    }
+  }, [buscar]);
+
+  function adicionarNovaPergunta() {
+    pesquisar(consultaAplicada.current);
   }
 
   function TabelaPerguntas() {   
@@ -98,14 +113,29 @@ function Pergunta() {
   }
     
   React.useEffect(() => {
-    fetch("http://localhost:5000")
-    .then((res) => res.json())
-    .then((data) => setListaPerguntas(data));
-  }, []);
-    
+    pesquisar('');
+    return () => { ultimaBusca.current += 1; };
+  }, [pesquisar]);
+
   return (
-    <div className="container"> 
-      <TabelaPerguntas />
+    <div className="container">
+      <Form onSubmit={event => { event.preventDefault(); pesquisar(consulta); }}>
+        <Form.Group controlId="busca-perguntas">
+          <Form.Label>Buscar perguntas por palavra-chave</Form.Label>
+          <Form.Control value={consulta} onChange={event => setConsulta(event.target.value)} />
+        </Form.Group>
+        <Button type="submit">Buscar</Button>{' '}
+        <Button type="button" onClick={() => { setConsulta(''); pesquisar(''); }}>Limpar</Button>
+      </Form>
+      {carregando && <p role="status">Carregando perguntas...</p>}
+      {!carregando && erro && <div role="alert">
+        <p>Não foi possível buscar perguntas. Tente novamente.</p>
+        <Button onClick={() => pesquisar(consultaAplicada.current)}>Tentar novamente</Button>
+      </div>}
+      {!carregando && !erro && <>
+        {listaPerguntas.length === 0 && <p role="status">Nenhuma pergunta encontrada</p>}
+        <TabelaPerguntas />
+      </>}
     </div>
   );
 }

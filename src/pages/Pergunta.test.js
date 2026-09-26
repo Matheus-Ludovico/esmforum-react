@@ -1,0 +1,30 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
+import Pergunta from './Pergunta';
+
+test('busca, resultado vazio, falha, repetição e limpeza', async () => {
+  const buscar = jest.fn().mockResolvedValue([{ id_pergunta: 1, texto: 'JavaScript', num_respostas: 0 }]);
+  render(<MemoryRouter><Pergunta buscar={buscar} /></MemoryRouter>);
+  expect(screen.getByRole('status')).toHaveTextContent('Carregando');
+  await screen.findByText('JavaScript');
+  const campo = screen.getByLabelText('Buscar perguntas por palavra-chave');
+  fireEvent.change(campo, { target: { value: 'Python' } });
+  buscar.mockResolvedValueOnce([]);
+  fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+  await screen.findByText('Nenhuma pergunta encontrada');
+  expect(buscar).toHaveBeenLastCalledWith('Python');
+  buscar.mockRejectedValueOnce(new Error('offline'));
+  fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+  await screen.findByRole('alert');
+  expect(screen.queryByText('Nenhuma pergunta encontrada')).not.toBeInTheDocument();
+  expect(campo).toHaveValue('Python');
+  fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+  await screen.findByText('JavaScript');
+  expect(buscar).toHaveBeenLastCalledWith('Python');
+  fireEvent.click(screen.getByRole('button', { name: 'Limpar' }));
+  await waitFor(() => expect(buscar).toHaveBeenLastCalledWith(''));
+  await screen.findByText('JavaScript');
+  expect(campo).toHaveValue('');
+});
