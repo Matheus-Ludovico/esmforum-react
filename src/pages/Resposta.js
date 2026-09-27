@@ -85,13 +85,16 @@ function Resposta() {
   }  
 
   React.useEffect(() => {
+    let ativa = true;
     fetch('http://localhost:5000/respostas/' + id_pergunta)
     .then(response => response.json())
     .then(data => {
+       if (!ativa) return;
        setPergunta(data.pergunta.texto);
        setListaRespostas(data.respostas);
     })
-  }, []);
+    return () => { ativa = false; };
+  }, [id_pergunta]);
 
   function existeResposta() {
     return listaRespostas.length > 0;
